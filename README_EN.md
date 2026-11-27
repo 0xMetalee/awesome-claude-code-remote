@@ -23,6 +23,7 @@ In my own testing, **physical device isolation, a local network and real credit 
   - [3.4 Handle Permission Prompts Before Leaving a Task Unattended](#34-handle-permission-prompts-before-leaving-a-task-unattended)
   - [3.5 Stop a Session and Release Sleep Assertions with stop.sh](#35-stop-a-session-and-release-sleep-assertions-with-stopsh)
 - [4. Everyday Troubleshooting](#4-everyday-troubleshooting)
+- [Full troubleshooting guide (English)](./TROUBLESHOOTING_EN.md) · [排错指南（中文）](./TROUBLESHOOTING.md)
 - [5. FAQ](#5-faq)
 - [6. A Fully Managed Dedicated Workstation](#6-a-fully-managed-dedicated-workstation)
 - [7. Feedback and Contact](#7-feedback-and-contact)
@@ -122,6 +123,8 @@ bash stop.sh claude-batch
 ---
 
 ## 4. Everyday Troubleshooting
+
+**For 403, 429, SSH disconnects, permission blocks, and watchdog failures, follow the full troubleshooting guide.** [English guide](./TROUBLESHOOTING_EN.md) · [中文指南](./TROUBLESHOOTING.md)
 
 These built-in commands help when a background job encounters a network interruption or expired authentication.
 
