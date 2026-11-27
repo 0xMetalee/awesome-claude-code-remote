@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Author: 0xMetalee (WindFlame | https://windflame.org)
+# Author: 0xMetalee | https://windflame.org/?ref=TBMW#register
 # Description: 我自用的 macOS 7×24 小时 Claude Code 无人值守守护脚本（防休眠 + 断线续跑 + 风控熔断）
 # Usage:
 #   交互保活模式: bash watchdog.sh [项目目录] [会话名]
 #   无人批跑模式: bash watchdog.sh [项目目录] [会话名] "任务指令 或 @TASK.md"
 # ==============================================================================
 
+set -euo pipefail
+
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.npm-global/bin:$PATH"
 
 PROJECT_DIR="${1:-$(pwd)}"
 RAW_SESSION="${2:-claude-work}"
 TASK_PROMPT="${3:-}"
+
+if [[ "$RAW_SESSION" == *$'\n'* || "$RAW_SESSION" == *$'\r'* ]]; then
+    echo "❌ 会话名不能包含换行。" >&2
+    exit 1
+fi
 
 SESSION_NAME=$(printf '%s' "$RAW_SESSION" | tr '.:/' '---')
 LOG_DIR="$HOME/.claude/logs"
@@ -32,6 +39,9 @@ if [ ! -d "$PROJECT_DIR" ]; then
 fi
 PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 mkdir -p "$LOG_DIR"
+# Serialize startup and shutdown. Close this descriptor in persistent children.
+exec 9>"$LOG_DIR/.lifecycle.lock"
+/usr/bin/lockf -t 10 9 || exit 1
 
 echo "🛡️  正在初始化 Claude Code 持久化运行环境..."
 echo "   • 项目路径 : $PROJECT_DIR"
@@ -40,8 +50,8 @@ echo "   • 运行模式 : $([ -n "$TASK_PROMPT" ] && echo "无人值守批处�
 echo "   • 守护日志 : $LOG_FILE"
 
 # 3. 启动 macOS 防休眠守护（防止合盖或空闲导致网络断开）
-if ! pgrep -f "caffeinate -disu" >/dev/null 2>&1; then
-    nohup caffeinate -disu >/dev/null 2>&1 &
+if ! pgrep -u "$(id -u)" -f '(^|/)caffeinate -disu$' >/dev/null 2>&1; then
+    nohup caffeinate -disu >/dev/null 2>&1 9>&- &
     echo "✅ 已激活系统级防休眠守护 (caffeinate PID: $!)"
 else
     echo "✅ 系统级防休眠守护已在运行中"
@@ -115,10 +125,10 @@ EOF
 chmod +x "$RUNNER_SCRIPT"
 
 # 5. 启动或复用 tmux 后台会话
-if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
-    tmux new-session -d -s "$SESSION_NAME" -c "$PROJECT_DIR"
+if ! tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
+    tmux new-session -d -s "$SESSION_NAME" -c "$PROJECT_DIR" 9>&-
     SAFE_CMD=$(printf 'bash %q %q %q %q' "$RUNNER_SCRIPT" "$PROJECT_DIR" "$LOG_FILE" "$TASK_PROMPT")
-    tmux send-keys -t "$SESSION_NAME" "$SAFE_CMD" C-m
+    tmux send-keys -t "=$SESSION_NAME:" "$SAFE_CMD" C-m
     echo "✅ 已创建全新后台会话: $SESSION_NAME"
 else
     echo "ℹ️  会话 [$SESSION_NAME] 已存在，直接接入现有运行环境"
@@ -130,5 +140,5 @@ echo "🎉 7×24 小时持久化工作站已就绪！常用运维指令："
 echo "   • 接入实时交互画面   : tmux attach -t $SESSION_NAME"
 echo "   • 挂起画面(后台继续) : 先按 Ctrl+B，松开后再按 D"
 echo "   • 查看守护运行日志   : tail -f $LOG_FILE"
-echo "   • 彻底销毁后台会话   : tmux kill-session -t $SESSION_NAME"
+echo "   • 彻底销毁后台会话   : bash stop.sh $SESSION_NAME"
 echo "=============================================================="

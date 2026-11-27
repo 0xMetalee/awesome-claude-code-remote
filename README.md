@@ -1,3 +1,7 @@
+[中文](./README.md) | [English](./README_EN.md)
+
+[![ShellCheck](https://github.com/0xMetalee/awesome-claude-code-remote/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/0xMetalee/awesome-claude-code-remote/actions/workflows/shellcheck.yml)
+
 # 防封号顶级教程：Claude Code 远程隔离与 7×24 无人值守实战配置（2026年终版）
 
 我是一个国内每天爬格子的码农。这半年重度用 Claude Code（CC）写业务代码，前前后后被封了三四个主力号，充进去的额度直接打水漂，半夜写代码写到一半突然弹出封禁提示，搞得我都快得“封号 PTSD”了。
@@ -16,6 +20,7 @@
   - [2. 运行 setup.sh 做出口 IP 与时区审计](#2-运行-setupsh-做出口-ip-与时区审计)
   - [3. 运行 watchdog.sh 挂起无人值守任务](#3-运行-watchdogsh-挂起无人值守任务)
   - [4. 避坑：无人值守时的权限卡死问题](#4-避坑无人值守时的权限卡死问题)
+  - [5. 运行 stop.sh 停止会话并释放休眠锁](#5-运行-stopsh-停止会话并释放休眠锁)
 - [四、 日常排错常用命令](#四-日常排错常用命令)
 - [五、 常见疑问（FAQ）](#五-常见疑问faq)
 - [六、 懒人方案：委托我们提供全套独享物理工作站](#六-懒人方案委托我们提供全套独享物理工作站)
@@ -64,7 +69,7 @@ brew install --cask tailscale
 每次拿到新机器或调整网络后，我都会先跑一遍这个脚本。它会用 macOS 原生解析检查当前出口 IP 的 ASN 归属，并对比**本机系统时区和 IP 所在时区是否一致**（时区对不上也是高频风控点），顺便把 `tmux`、`Node.js` 和 `claude` 补齐：
 
 ```bash
-git clone https://github.com && cd awesome-claude-code-remote
+git clone https://github.com/0xMetalee/awesome-claude-code-remote.git && cd awesome-claude-code-remote
 bash setup.sh
 ```
 
@@ -93,6 +98,18 @@ bash watchdog.sh ~/projects/your-repo claude-batch @TASK.md
    ```bash
    claude --dangerously-skip-permissions -p "阅读 TASK.md，完成核心模块开发并跑通所有单测，测试通过后提交一个 Git Commit。"
    ```
+
+### 5. 运行 `stop.sh` 停止会话并释放休眠锁
+
+在宿主 Mac 的另一个终端运行以下命令。脚本先发送 `Ctrl+C`，等待 2 秒后关闭指定会话，并清理 `~/.claude/logs/.runner_<会话名>.sh`。还有其他 tmux 会话或进程时会保留防休眠守护；最后一个会话结束后，会终止当前用户的 `caffeinate -disu` 并释放它的休眠锁。重复运行可清理已经停止的会话遗留的 runner。
+
+```bash
+# 默认会话 claude-work
+bash stop.sh
+
+# 指定会话
+bash stop.sh claude-batch
+```
 
 ---
 

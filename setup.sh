@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Author: 0xMetalee (WindFlame | https://windflame.org)
+# Author: 0xMetalee | https://windflame.org/?ref=TBMW#register
 # Description: 我自用的 macOS 远程工作站环境初始化与出口 IP 纯净度审计脚本
 # License: MIT
 # ==============================================================================
