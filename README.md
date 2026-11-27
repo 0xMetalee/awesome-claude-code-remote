@@ -150,7 +150,10 @@ claude --resume
 
 我自己靠美西朋友把这套“本地物理机 + 当地人开号绑真实美卡”跑通之后，身边不少同样被封号折磨的码农朋友也托我帮忙搞。既然采购、机房上架和当地实卡订阅的链路都已经打通了，我们干脆顺手做了 **[WindFlame 全球独享工作站](https://windflame.org/?ref=TBMW#register)**（每月 **$179** 起），把这套方案开放出来给大家用：
 
-* **真·一人一机物理隔离：** 收到需求后，美西本地朋友直接线下采购**全新 Mac mini**（美国 / 韩国节点可选）上架交付，绝不是那种超售的云虚拟机，彻底告别邻居 IP 污染。
+* **真·一人一机物理隔离：** 收到需求后，美西本地朋友直接线下采购**全新 Mac mini**（美国 / 韩国节点可选）上架交付，绝不是那种超售的云虚拟机，彻底告别邻居 IP 污染。<img width="1280" height="1707" alt="9268c8286a168074f119ecd3645fe74e" src="https://github.com/user-attachments/assets/6a8ea1a6-d9c4-4d9e-b673-e3b6ea25725a" /><img width="1280" height="1707" alt="d1fdfff5d0de7ce27027f50374b90a56" src="https://github.com/user-attachments/assets/11eaff99-276e-4823-a684-cc7f10e1c62e" /><img width="1080" height="1920" alt="cfd5806ca7f9e4458df8b845e7b55992" src="https://github.com/user-attachments/assets/7668cf3a-3dc8-4779-a575-6c03c0a8270e" />
+
+
+
 * **当地真实信用卡订阅（可选）：** 如果你自己搞不定美卡支付，可以直接选带官方账号的套餐，当地真实信用卡原生订阅，从源头杜绝虚拟卡拒付封号。
 * **完整 macOS 桌面 + SSH：** 基础环境全部预装好，Tailscale 一连直接开干。你既可以 SSH 跑本仓库的 `watchdog.sh` 挂机，也可以开屏幕共享用浏览器、跑 Xcode 打包。
 
