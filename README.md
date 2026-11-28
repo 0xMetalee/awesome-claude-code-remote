@@ -74,6 +74,17 @@ git clone https://github.com/0xMetalee/awesome-claude-code-remote.git && cd awes
 bash setup.sh
 ```
 
+需要分享环境诊断时，我加上 `--report`，在保留终端输出的同时生成纯文本摘要：
+
+```bash
+bash setup.sh --report
+cat /tmp/claude-remote-report.txt
+# macOS：复制报告到剪贴板
+pbcopy < /tmp/claude-remote-report.txt
+```
+
+报告将 IPv4 后两段替换成 `x.x`，IPv6 整体隐藏；保留 ASN 归属、系统与 IP 时区及匹配状态、Anthropic 站点 HTTP 状态、DNS/TCP/TLS/总耗时和 CLI 版本。缺失信息标为 Unknown / Unavailable，不算匹配成功。文件仅当前用户可读写，不收集账号、密钥或项目路径；**终端仍显示原始诊断信息，分享时使用报告文件**。探测目标是 `https://anthropic.com`，耗时不等于模型请求延迟，收到 HTTP 响应也不代表 API 授权成功。`--report` 仍会执行原有依赖检查和安装流程。
+
 ### 3. 运行 `watchdog.sh` 挂起无人值守任务
 这是我自用的防断线保活脚本：调用 `caffeinate -disu` 锁死系统防止休眠；把进程丢进 `tmux` 后台；如果遇到网络波动异常退出（非 `0` 且非手动 `Ctrl+C` 的 `130` 退出码），等待 20 秒后自动用 `--continue` 续跑；**如果 15 秒内连续崩溃 3 次，自动触发安全熔断停止拉起，保护账号安全**。
 
@@ -85,12 +96,43 @@ bash watchdog.sh ~/projects/your-repo claude-work
 bash watchdog.sh ~/projects/your-repo claude-batch @TASK.md
 ```
 
+我先把 [任务书模板](./examples/TASK.example.md) 复制到业务项目，填好目标、允许修改的目录、精确测试命令与提交权限，再派给后台。下面从本仓库根目录运行，交互复制会在目标文件已存在时询问，避免直接覆盖：
+
+```bash
+repo_dir="$(pwd -P)"
+printf '业务项目绝对路径: '
+IFS= read -r project_dir
+test -d "$project_dir" || exit 1
+cp -i examples/TASK.example.md "$project_dir/TASK.md"
+```
+
+编辑业务项目的 `TASK.md`，填完全部 `<...>` 占位符并确认验收标准后，再运行：
+
+```bash
+bash "$repo_dir/watchdog.sh" "$project_dir" claude-batch '@TASK.md'
+```
+
+批处理只执行一次，不会失败后自动重跑或等待额度恢复。模板默认不创建 Git Commit；确实允许本地提交时需明确授权，测试通过后只提交本次范围内文件，禁止自动 push。日志之外，还要检查实际测试结果和 `git diff`。
+
 **日常接管后台的常用快捷键：**
 * **暂离终端（让任务继续在后台跑）：** 先按 `Ctrl + B`，松开后再按 `D`。然后你就可以直接关电脑睡觉了。
 * **随时连回去看进度：** `tmux attach -t claude-work`
 * **看守护进程有没有触发熔断：** `tail -f ~/.claude/logs/watchdog_claude-work.log`
 
 ### 4. 避坑：无人值守时的权限卡死问题
+
+常用工具白名单在 [examples/settings.local.example.json](./examples/settings.local.example.json)。在本仓库目录、继续使用上面的路径变量运行以下命令；已有配置需手动合并并保留原限制，不要直接覆盖：
+
+```bash
+mkdir -p "$project_dir/.claude"
+if [ ! -e "$project_dir/.claude/settings.local.json" ]; then
+    cp examples/settings.local.example.json "$project_dir/.claude/settings.local.json"
+fi
+python3 -m json.tool "$project_dir/.claude/settings.local.json" >/dev/null
+```
+
+按项目实际目录和测试命令调整，在交互会话用 `/permissions` 核对生效规则。示例不自动授权 Git 提交或推送；测试命令会执行项目代码，文件工具的拒绝规则也不是操作系统沙箱，生产凭据仍应移出开发环境。
+
 用过 CC 的同行都知道，默认安全模式下它每次改文件或执行测试命令都会停下来等人工敲 `Yes` 确认。半夜挂机没配置好权限，它会在第一步就卡死到天亮。
 
 有两种解决办法：

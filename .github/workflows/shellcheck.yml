@@ -28,3 +28,7 @@ jobs:
           sed -n "/^cat > .*<< 'EOF'$/,/^EOF$/{ /^cat > /d; /^EOF$/d; p; }" watchdog.sh > "$runner"
           test -s "$runner"
           shellcheck --severity=style "$runner"
+      - name: Validate example JSON
+        run: python3 -m json.tool examples/settings.local.example.json > /dev/null
+      - name: Test redacted setup reports (offline)
+        run: python3 -m unittest discover -s tests -v

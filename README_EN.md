@@ -77,6 +77,17 @@ git clone https://github.com/0xMetalee/awesome-claude-code-remote.git && cd awes
 bash setup.sh
 ```
 
+When sharing diagnostics, I add `--report` to save a plain-text summary alongside the terminal output:
+
+```bash
+bash setup.sh --report
+cat /tmp/claude-remote-report.txt
+# macOS: copy the report to the clipboard.
+pbcopy < /tmp/claude-remote-report.txt
+```
+
+The report replaces the last two IPv4 octets with `x.x` and fully hides IPv6 addresses. It keeps the ASN/organization, system and IP time zones and their match status, the Anthropic website's HTTP status, DNS/TCP/TLS/total timings, and the CLI version. Missing measurements are marked Unknown / Unavailable. The file is readable and writable only by its owner and does not collect accounts, secrets, or project paths. **The terminal still shows the original diagnostics; share the report file.** The probe targets `https://anthropic.com`; its timings are not model-request latency, and an HTTP response does not establish API authorization. `--report` still runs the existing dependency checks and installation steps.
+
 ### 3.3 Run Persistent Tasks with watchdog.sh
 
 This is the watchdog I use for persistent sessions. It starts `caffeinate -disu` to prevent sleep and runs the workload inside `tmux`. In interactive mode, an abnormal exit—anything other than `0` or the manual `Ctrl+C` exit code `130`—triggers a 20-second wait before restarting, using `--continue` when session history is available. **Three consecutive runs that each fail in under 15 seconds trip the circuit breaker and stop further restarts.** Batch mode exits its watchdog loop when the command finishes.
@@ -89,6 +100,24 @@ bash watchdog.sh ~/projects/your-repo claude-work
 bash watchdog.sh ~/projects/your-repo claude-batch @TASK.md
 ```
 
+I start with the [task template](./examples/TASK.example.md), filling in the objective, allowed paths, exact test commands, and commit permission. Run this from the operations repository root; interactive copying asks before replacing an existing file:
+
+```bash
+repo_dir="$(pwd -P)"
+printf 'Project directory: '
+IFS= read -r project_dir
+test -d "$project_dir" || exit 1
+cp -i examples/TASK.example.md "$project_dir/TASK.md"
+```
+
+Edit the project's `TASK.md`, replace every `<...>` placeholder, and confirm the acceptance criteria before starting:
+
+```bash
+bash "$repo_dir/watchdog.sh" "$project_dir" claude-batch '@TASK.md'
+```
+
+Batch mode runs once; it does not automatically retry failures or wait for quota resets. The template defaults to no Git commit. If a local commit is explicitly authorized, all required tests must pass and only approved files may be staged; automatic pushes are prohibited. Review the actual test results and `git diff` as well as the watchdog log.
+
 Useful commands for taking over a background session follow.
 
 * **Detach and leave the job running.** Press `Ctrl + B`, release both keys, then press `D`. You can disconnect your client and leave the remote session running.
@@ -96,6 +125,18 @@ Useful commands for taking over a background session follow.
 * **Check the watchdog and circuit breaker.** Run `tail -f ~/.claude/logs/watchdog_claude-work.log`.
 
 ### 3.4 Handle Permission Prompts Before Leaving a Task Unattended
+
+The [example allowlist](./examples/settings.local.example.json) covers common file and test operations. From this repository, using the path variables above, copy it only if no local settings file exists. Merge into existing settings manually, preserving their restrictions:
+
+```bash
+mkdir -p "$project_dir/.claude"
+if [ ! -e "$project_dir/.claude/settings.local.json" ]; then
+    cp examples/settings.local.example.json "$project_dir/.claude/settings.local.json"
+fi
+python3 -m json.tool "$project_dir/.claude/settings.local.json" >/dev/null
+```
+
+Adjust the paths and test commands for your project, then inspect `/permissions` in an interactive session. The example does not authorize Git commits or pushes. Test commands execute project code, and file-tool deny rules are not an OS sandbox; keep production credentials outside the development environment.
 
 Claude Code can pause for approval before editing files or running commands. If you haven't configured permissions for an overnight run, it can sit at the first prompt until morning.
 
